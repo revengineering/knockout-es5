@@ -297,7 +297,7 @@
   // This is used to make model properties of type array fire notifications when the array changes.
   // Returns a subscribable that can later be disposed.
   function startWatchingArrayInstance(ko, observable, arrayInstance) {
-    var subscribable = getSubscribableForArray(ko, arrayInstance);
+    var subscribable = getSubscribableForArray(ko, arrayInstance, observable);
     return subscribable.subscribe(observable);
   }
 
@@ -306,7 +306,7 @@
   var arraySubscribablesMap;
 
   // Gets or creates a subscribable that fires after each array mutation
-  function getSubscribableForArray(ko, arrayInstance) {
+  function getSubscribableForArray(ko, arrayInstance, observable) {
     if (!arraySubscribablesMap) {
       arraySubscribablesMap = weakMapFactory();
     }
@@ -319,9 +319,23 @@
       var notificationPauseSignal = {};
       wrapStandardArrayMutators(arrayInstance, subscribable, notificationPauseSignal);
       addKnockoutArrayMutators(ko, arrayInstance, subscribable, notificationPauseSignal);
+      addKnockoutArraySubscribeMethod(arrayInstance, observable);
     }
 
     return subscribable;
+  }
+
+  // Adds a "subscribe" method to the array instance, which routes to the standard
+  // knockout subscribe method on the observableArray. This allows bindings to subscribe
+  // to specific array events (e.g. 'arrayChange') using the same "subscribe" method 
+  // without having to explicitly get the observable.
+  function addKnockoutArraySubscribeMethod(arrayInstance, observable) {
+    Object.defineProperty(arrayInstance, 'subscribe', { 
+      enumerable: false, 
+      value: function () {
+        return observable.subscribe.apply(observable, arguments); 
+      } 
+    });
   }
 
   // After each array mutation, fires a notification on the given subscribable

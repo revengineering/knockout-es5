@@ -123,6 +123,22 @@ describe('Array handling', function () {
     assert.equal(lastNotifiedValue(), '');
   });
 
+  it('supports the subscribe method for more detailed notification - e.g. change tracking', function () {
+    var plainArray = ['a', 'b', 'c'],
+      obj = ko.track({ myArray: ko.observableArray(plainArray) }),
+      lastNotifiedValue;
+
+    // Subscribe to the 'arrayChange' notification.
+    plainArray.subscribe(function(changeSet) {
+        lastNotifiedValue = JSON.stringify(changeSet);
+    }, this, 'arrayChange');
+
+    // Adding an item. It should should up in the changeSet argument with a status of 'added'
+    plainArray.push('d');
+    assert.equal(lastNotifiedValue, '[{"status":"added","value":"d","index":3}]');
+  });
+
+
   it('only triggers one notification at the end of a Knockout mutator function', function() {
     var plainArray = [1, 2, 3, 4, 5],
       obj = ko.track({ myArray: plainArray }),
